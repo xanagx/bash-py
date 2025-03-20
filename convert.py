@@ -1,4 +1,5 @@
 import argparse
+import os
 from typing import Generator
 
 # tree-sitter
@@ -9,6 +10,12 @@ from tree_sitter import Language, Parser, Tree, Node
 
 # gemini
 from google import genai
+
+# groq
+from groq import Groq
+
+# huggingface
+from huggingface_hub import InferenceClient
 
 # buffer manager
 from buffmgr.buffer_manager import BufferManager
@@ -25,6 +32,7 @@ Follow the <Instructions> to convert the Bash function to Python function.
 5. Do not remove any code.
 6. Do not add add extra code such as function usage, examples and main functions other than the function definition.
 7. Do not add any other text such as description, comments and explanations etc.
+8. Do not merge multiple functions into a single function.
 </Instructions>
 
 <Bash_Code>
@@ -122,6 +130,18 @@ def get_response_from_client(marg, client, query, verbose):
                 contents=f"{query}",
         )
         resp += answer.text
+    elif (marg == "groq"):
+        answer = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[{"role": "user", "content": query}],
+        )
+        resp += answer.choices[0].message.content
+    elif (marg == "hf"):
+        answer = client.chat.completions.create(
+            model="meta-llama/Meta-Llama-3-8B-Instruct", 
+            messages=[{"role": "user", "content": query}],
+        )
+        resp += answer.choices[0].message.content
     else:
         answer = client.messages.create(  
             max_tokens=1024,  
@@ -137,13 +157,20 @@ def prepare_model(marg, verbose):
  
     if (marg == "gemini"):
         print("Using gemini") if (verbose) else None
-        # client = GenerativeModel("gemini-1.5-pro-preview-0409") 
-                #"gemini-1.5-pro-002") 
-        client = genai.Client(api_key="AIzaSyAfoP1lmCIXOJPhC8oSql1eZo8xiOOMzKk")
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    elif (marg == "groq"):
+        print("Using groq") if (verbose) else None
+        client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    elif (marg == "hf"):
+        print("Using huggingface") if (verbose) else None
+        client = InferenceClient(
+            provider="hf-inference",
+            api_key=os.environ.get("HUGGINGFACE_API_KEY"),
+        )
     else:
         print("Using claude") if (verbose) else None
         LOCATION="us-east5" # or "europe-west1" 
-        client = AnthropicVertex(region=LOCATION, project_id="snps-ai-gemini-edag01") 
+        # client = AnthropicVertex(region=LOCATION, project_id="snps-ai-gemini-edag01") 
 
     if (verbose):
         print ("Testing the model: who were the founders of Google?")
@@ -174,8 +201,6 @@ def main():
     else:
         print("Verbose mode disabled.")
 
-    # Load the shared library
-    # bash_lang = Language('libtree-sitter-bash.so', 'bash')
     bash_lang = Language(tree_sitter_bash.language())
 
     # Create a parser
