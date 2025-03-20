@@ -6,22 +6,12 @@ import tree_sitter_bash
 from tree_sitter import Language, Parser, Tree, Node
 
 # claude
-import base64 
-import httpx 
-from anthropic import AnthropicVertex 
-from google import auth
 
 # gemini
-# from vertexai.generative_models import GenerativeModel, Part, FinishReason 
-# import vertexai.preview.generative_models as generative_models 
 from google import genai
-from google.genai.types import HttpOptions, Part
 
+# buffer manager
 from buffmgr.buffer_manager import BufferManager
-
-# Print the syntax tree
-#print(tree.root_node.sexp())
-
 
 BASH_TO_PY_CONV_PROMPT = """Assistant is an Bash and Python expert. Your task is to convert the given Bash function to a to Python function.
 
@@ -130,9 +120,6 @@ def get_response_from_client(marg, client, query, verbose):
         answer = client.models.generate_content( 
                 model="gemini-2.0-flash-001",
                 contents=f"{query}",
-            #generation_config=generation_config, 
-            #safety_settings=safety_settings, 
-            #stream=True, 
         )
         resp += answer.text
     else:
@@ -152,7 +139,7 @@ def prepare_model(marg, verbose):
         print("Using gemini") if (verbose) else None
         # client = GenerativeModel("gemini-1.5-pro-preview-0409") 
                 #"gemini-1.5-pro-002") 
-        client = genai.Client(http_options=HttpOptions(api_version="v1"))
+        client = genai.Client(api_key="AIzaSyAfoP1lmCIXOJPhC8oSql1eZo8xiOOMzKk")
     else:
         print("Using claude") if (verbose) else None
         LOCATION="us-east5" # or "europe-west1" 
@@ -170,7 +157,7 @@ def main():
     """Parses command-line arguments for model path and verbose mode."""
 
     parser = argparse.ArgumentParser(description="Example program using argparse.")
-    parser.add_argument('--model', '-m', type=str, default='claude', 
+    parser.add_argument('--model', '-m', type=str, default='gemini', 
                             help='Path to the ML model(default: claude-3-5-sonnet-v2@20241022)')
     parser.add_argument('--verbose', '-v', action='store_true', 
                               help='Enable verbose output')
