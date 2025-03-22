@@ -36,7 +36,6 @@ class Graph:
         self.edges = []
 
     def add_node(self, type_name):
-        # import pdb; pdb.set_trace()
         if type_name not in self.nodes:
             self.nodes[type_name] = TNode(type_name)
         return self.nodes[type_name]
@@ -84,17 +83,36 @@ def read_node_types(file_path):
     with open(file_path, 'r') as f:
         return json.load(f)
 
+def find_dependencies(node, dependencies, parent_type=None):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            logging.debug(f"key: {key}, value: {value}")
+            if key == "type" and parent_type != value:
+                dependencies[parent_type].add(value)
+                continue
+            find_dependencies(value, dependencies, parent_type)
+    elif isinstance(node, list):
+        logging.debug(f"node: {node}, parent_type: {parent_type}")    
+        for item in node:
+            find_dependencies(item, dependencies, parent_type)
+
+def print_dependencies(dependencies):
+    for parent, children in dependencies.items():
+        print(f"{parent}: {', '.join(children)}")
+
 def main():
-    file_path = '/u/anag/cov1/release/convert-vcs/vcs-ml/vcs_cleanup/bash2python/node_types.json'
+    file_path = 'c:\\Users\\anagx\\DevWorks\\bash-py\\node_types.json'
     node_types = read_node_types(file_path)
 
     graph = Graph()
 
     for node_type in node_types:
-        type_name = node_type['type']
-        if 'subtypes' in node_type:
-            for subtype in node_type['subtypes']:
-                graph.add_edge(type_name, subtype['type']) 
+        node = graph.add_node(node_type['type'])
+        dependencies = defaultdict(set)
+        find_dependencies(node_type, dependencies, node_type['type'])
+        # print_dependencies(dependencies)
+        for dependency in dependencies[node_type['type']]:
+            graph.add_edge(node_type['type'], dependency)
 
     cycles = graph.detect_cycles()
     if cycles:
