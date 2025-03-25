@@ -48,26 +48,27 @@ class Graph:
 
     def detect_cycles(self):
         visited = set()
-        stack = set()
+        stack = []
         cycles = []
 
         def visit(node):
-            if node in stack:
-                return [node]
             if node in visited:
-                return []
+                # cycle found
+                # import pdb; pdb.set_trace()
+                if node in stack:
+                    last = stack.index(node)
+                    cycle = stack[last:]
+                    cycle_str = " -> ".join(tnode.type_name for tnode in cycle)
+                    cycle_str += f" -> {node.type_name}"
+                    cycles.append(cycle_str)
+                    logging.debug(f"Cycle found: {cycle_str}")
+                return
             visited.add(node)
-            stack.add(node)
+            stack.append(node)
             for subtype in node.subtypes:
-                cycle = visit(subtype)
-                if cycle:
-                    cycle.append(node)
-                    if cycle[0] == node:
-                        cycles.append(cycle)
-                        return []
-                    return cycle
+                visit(subtype)
             stack.remove(node)
-            return []
+            return
 
         for node in self.nodes.values():
             visit(node)
@@ -114,15 +115,16 @@ def main():
         for dependency in dependencies[node_type['type']]:
             graph.add_edge(node_type['type'], dependency)
 
+    graph.dump_graph('graph_output.txt')
+
     cycles = graph.detect_cycles()
     if cycles:
         logging.info("Cycles detected:")
         for cycle in cycles:
-            logging.info(" -> ".join(node.type_name for node in cycle))
+            logging.info("Cycle: " + cycle)
     else:
         logging.info("No cycles detected.")
 
-    graph.dump_graph('graph_output.txt')
 
 if __name__ == "__main__":
     main()
